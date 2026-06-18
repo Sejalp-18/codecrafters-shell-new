@@ -7,7 +7,9 @@ public class Main {
         while (true) {
             System.out.print("$ ");
             String s = sc.nextLine();
-            if (s.endsWith("exit"))
+            if (s.startsWith("echo"))
+                System.out.println(s.substring(5));
+            else if (s.endsWith("exit"))
                 System.out.println("exit is a shell builtin");
             else if (s.endsWith("echo"))
                 System.out.println("echo is a shell builtin");
