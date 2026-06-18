@@ -9,7 +9,10 @@ public class Main {
             String s = sc.next();
             if (s.equals("exit"))
                 return;
-            System.out.println(s + ": command not found");
+            if (s.equals("echo"))
+                System.out.println(s);
+            else
+                System.out.println(s + ": command not found");
         }
 
     }
