@@ -14,7 +14,7 @@ public class Main {
             else if (s.endsWith("type"))
                 System.out.println("type is a shell builtin");
             else
-                System.out.println(s + ": not found");
+                System.out.println(s.substring(5) + ": not found");
         }
 
     }
