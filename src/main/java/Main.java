@@ -11,6 +11,8 @@ public class Main {
                 System.out.println("exit is a shell builtin");
             else if (s.endsWith("echo"))
                 System.out.println("echo is a shell builtin");
+            else if (s.endsWith("type"))
+                System.out.println("type is a shell builtin");
             else
                 System.out.println(s + ": not found");
         }
