@@ -2,6 +2,8 @@ import java.util.Scanner;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Main {
     public static void main(String[] args) throws Exception {
@@ -15,66 +17,73 @@ public class Main {
                 continue;
             }
 
-            if (s.equals("exit") || s.equals("exit 0")) {
-                return;
-            } else if (s.startsWith("echo ")) {
-                System.out.println(s.substring(5));
-            } else if (s.equals("pwd")) {
+            List<String> parsedArgs = parseInput(s);
+            if (parsedArgs.isEmpty()) {
+                continue;
+            }
+
+            String command = parsedArgs.get(0);
+
+            if (command.equals("exit")) {
+                if (parsedArgs.size() == 1 || (parsedArgs.size() == 2 && parsedArgs.get(1).equals("0"))) {
+                    return;
+                }
+            } else if (command.equals("echo")) {
+                System.out.println(String.join(" ", parsedArgs.subList(1, parsedArgs.size())));
+            } else if (command.equals("pwd")) {
                 System.out.println(System.getProperty("user.dir"));
-            } else if (s.startsWith("cd ")) {
+            } else if (command.equals("cd")) {
+                if (parsedArgs.size() > 1) {
+                    String targetDir = parsedArgs.get(1);
+                    String expandedDir = targetDir;
 
-                String targetDir = s.substring(3);
-                String expandedDir = targetDir;
-
-                if (targetDir.startsWith("~")) {
-                    String homeEnv = System.getenv("HOME");
-                    if (homeEnv != null) {
-                        expandedDir = targetDir.replaceFirst("^~", homeEnv);
-                    }
-                }
-
-                Path currentDir = Path.of(System.getProperty("user.dir"));
-                Path newPath = currentDir.resolve(expandedDir).normalize();
-
-                if (Files.isDirectory(newPath)) {
-                    System.setProperty("user.dir", newPath.toString());
-                } else {
-                    // Use the original targetDir for the error message
-                    System.out.println("cd: " + targetDir + ": No such file or directory");
-                }
-
-            } else if (s.startsWith("type ")) {
-                String cmd = s.substring(5);
-
-                if (cmd.equals("exit") || cmd.equals("echo") || cmd.equals("type") || cmd.equals("pwd")
-                        || cmd.equals("cd")) {
-                    System.out.println(cmd + " is a shell builtin");
-                } else {
-                    String pathEnv = System.getenv("PATH");
-                    boolean found = false;
-
-                    if (pathEnv != null) {
-                        String[] directories = pathEnv.split(File.pathSeparator);
-
-                        for (String dir : directories) {
-                            Path executablePath = Path.of(dir, cmd);
-
-                            if (Files.isRegularFile(executablePath) && Files.isExecutable(executablePath)) {
-                                System.out.println(cmd + " is " + executablePath);
-                                found = true;
-                                break;
-                            }
+                    if (targetDir.startsWith("~")) {
+                        String homeEnv = System.getenv("HOME");
+                        if (homeEnv != null) {
+                            expandedDir = targetDir.replaceFirst("^~", homeEnv);
                         }
                     }
 
-                    if (!found) {
-                        System.out.println(cmd + ": not found");
+                    Path currentDir = Path.of(System.getProperty("user.dir"));
+                    Path newPath = currentDir.resolve(expandedDir).normalize();
+
+                    if (Files.isDirectory(newPath)) {
+                        System.setProperty("user.dir", newPath.toString());
+                    } else {
+                        System.out.println("cd: " + targetDir + ": No such file or directory");
+                    }
+                }
+            } else if (command.equals("type")) {
+                if (parsedArgs.size() > 1) {
+                    String cmd = parsedArgs.get(1);
+
+                    if (cmd.equals("exit") || cmd.equals("echo") || cmd.equals("type") || cmd.equals("pwd")
+                            || cmd.equals("cd")) {
+                        System.out.println(cmd + " is a shell builtin");
+                    } else {
+                        String pathEnv = System.getenv("PATH");
+                        boolean found = false;
+
+                        if (pathEnv != null) {
+                            String[] directories = pathEnv.split(File.pathSeparator);
+
+                            for (String dir : directories) {
+                                Path executablePath = Path.of(dir, cmd);
+
+                                if (Files.isRegularFile(executablePath) && Files.isExecutable(executablePath)) {
+                                    System.out.println(cmd + " is " + executablePath);
+                                    found = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (!found) {
+                            System.out.println(cmd + ": not found");
+                        }
                     }
                 }
             } else {
-                String[] parts = s.split(" ");
-                String cmd = parts[0];
-
                 String pathEnv = System.getenv("PATH");
                 boolean found = false;
 
@@ -82,12 +91,13 @@ public class Main {
                     String[] directories = pathEnv.split(File.pathSeparator);
 
                     for (String dir : directories) {
-                        Path executablePath = Path.of(dir, cmd);
+                        Path executablePath = Path.of(dir, command);
 
                         if (Files.isRegularFile(executablePath) && Files.isExecutable(executablePath)) {
                             found = true;
                             try {
-                                ProcessBuilder pb = new ProcessBuilder(parts);
+                                // ProcessBuilder now natively accepts our parsed List of strings!
+                                ProcessBuilder pb = new ProcessBuilder(parsedArgs);
 
                                 pb.directory(new File(System.getProperty("user.dir")));
                                 pb.inheritIO();
@@ -103,9 +113,41 @@ public class Main {
                 }
 
                 if (!found) {
-                    System.out.println(s + ": command not found");
+                    System.out.println(command + ": command not found");
                 }
             }
         }
+    }
+
+    private static List<String> parseInput(String input) {
+        List<String> args = new ArrayList<>();
+        StringBuilder currentArg = new StringBuilder();
+
+        boolean inSingleQuote = false;
+        boolean inArg = false;
+
+        for (int i = 0; i < input.length(); i++) {
+            char c = input.charAt(i);
+
+            if (c == '\'') {
+                inSingleQuote = !inSingleQuote;
+                inArg = true;
+            } else if (c == ' ' && !inSingleQuote) {
+                if (inArg) {
+                    args.add(currentArg.toString());
+                    currentArg.setLength(0);
+                    inArg = false;
+                }
+            } else {
+                currentArg.append(c);
+                inArg = true;
+            }
+        }
+
+        if (inArg) {
+            args.add(currentArg.toString());
+        }
+
+        return args;
     }
 }
