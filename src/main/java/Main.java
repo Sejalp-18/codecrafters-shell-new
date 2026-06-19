@@ -134,9 +134,26 @@ public class Main {
                 currentArg.append(c);
                 inArg = true;
                 escapeNext = false;
-            } else if (c == '\\' && !inSingleQuote && !inDoubleQuote) {
-                escapeNext = true;
-                inArg = true;
+            } else if (c == '\\' && !inSingleQuote) {
+                // If we hit a backslash, check if we are outside or inside double quotes
+                if (!inDoubleQuote) {
+                    escapeNext = true;
+                    inArg = true;
+                } else {
+                    // Inside double quotes, only specific characters are escapable
+                    if (i + 1 < input.length()) {
+                        char next = input.charAt(i + 1);
+                        if (next == '"' || next == '\\' || next == '$' || next == '`' || next == '\n') {
+                            escapeNext = true;
+                        } else {
+                            // If it's not a special character, the backslash is literal
+                            currentArg.append(c);
+                        }
+                    } else {
+                        currentArg.append(c);
+                    }
+                    inArg = true;
+                }
             } else if (c == '\'' && !inDoubleQuote) {
                 inSingleQuote = !inSingleQuote;
                 inArg = true;
