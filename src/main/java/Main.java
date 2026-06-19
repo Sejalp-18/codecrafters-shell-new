@@ -125,33 +125,37 @@ public class Main {
         boolean inSingleQuote = false;
         boolean inDoubleQuote = false;
         boolean inArg = false;
+        boolean escapeNext = false;
 
         for (int i = 0; i < input.length(); i++) {
             char c = input.charAt(i);
 
-            if (c == '\'' && !inDoubleQuote) {
-                // Toggle single quote ONLY if we are not inside double quotes
+            if (escapeNext) {
+                currentArg.append(c);
+                inArg = true;
+                escapeNext = false;
+            } else if (c == '\\' && !inSingleQuote && !inDoubleQuote) {
+                escapeNext = true;
+                inArg = true;
+            } else if (c == '\'' && !inDoubleQuote) {
                 inSingleQuote = !inSingleQuote;
                 inArg = true;
             } else if (c == '"' && !inSingleQuote) {
-                // Toggle double quote ONLY if we are not inside single quotes
                 inDoubleQuote = !inDoubleQuote;
                 inArg = true;
             } else if (c == ' ' && !inSingleQuote && !inDoubleQuote) {
-                // Space acts as a delimiter ONLY if we are completely unquoted
                 if (inArg) {
                     args.add(currentArg.toString());
                     currentArg.setLength(0);
                     inArg = false;
                 }
             } else {
-                // Append the character (this inherently handles concatenation)
                 currentArg.append(c);
                 inArg = true;
             }
         }
 
-        if (inArg) {
+        if (inArg || escapeNext) {
             args.add(currentArg.toString());
         }
 
