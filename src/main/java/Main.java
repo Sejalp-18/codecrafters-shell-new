@@ -21,10 +21,21 @@ public class Main {
                 System.out.println(s.substring(5));
             } else if (s.equals("pwd")) {
                 System.out.println(System.getProperty("user.dir"));
+            } else if (s.startsWith("cd ")) {
+
+                String targetDir = s.substring(3);
+                Path newPath = Path.of(targetDir);
+
+                if (Files.isDirectory(newPath)) {
+                    System.setProperty("user.dir", targetDir);
+                } else {
+                    System.out.println("cd: " + targetDir + ": No such file or directory");
+                }
             } else if (s.startsWith("type ")) {
                 String cmd = s.substring(5);
 
-                if (cmd.equals("exit") || cmd.equals("echo") || cmd.equals("type") || cmd.equals("pwd")) {
+                if (cmd.equals("exit") || cmd.equals("echo") || cmd.equals("type") || cmd.equals("pwd")
+                        || cmd.equals("cd")) {
                     System.out.println(cmd + " is a shell builtin");
                 } else {
                     String pathEnv = System.getenv("PATH");
@@ -65,6 +76,8 @@ public class Main {
                             found = true;
                             try {
                                 ProcessBuilder pb = new ProcessBuilder(parts);
+
+                                pb.directory(new File(System.getProperty("user.dir")));
                                 pb.inheritIO();
 
                                 Process process = pb.start();
