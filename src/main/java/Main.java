@@ -96,7 +96,6 @@ public class Main {
                         if (Files.isRegularFile(executablePath) && Files.isExecutable(executablePath)) {
                             found = true;
                             try {
-                                // ProcessBuilder now natively accepts our parsed List of strings!
                                 ProcessBuilder pb = new ProcessBuilder(parsedArgs);
 
                                 pb.directory(new File(System.getProperty("user.dir")));
@@ -124,21 +123,29 @@ public class Main {
         StringBuilder currentArg = new StringBuilder();
 
         boolean inSingleQuote = false;
+        boolean inDoubleQuote = false;
         boolean inArg = false;
 
         for (int i = 0; i < input.length(); i++) {
             char c = input.charAt(i);
 
-            if (c == '\'') {
+            if (c == '\'' && !inDoubleQuote) {
+                // Toggle single quote ONLY if we are not inside double quotes
                 inSingleQuote = !inSingleQuote;
                 inArg = true;
-            } else if (c == ' ' && !inSingleQuote) {
+            } else if (c == '"' && !inSingleQuote) {
+                // Toggle double quote ONLY if we are not inside single quotes
+                inDoubleQuote = !inDoubleQuote;
+                inArg = true;
+            } else if (c == ' ' && !inSingleQuote && !inDoubleQuote) {
+                // Space acts as a delimiter ONLY if we are completely unquoted
                 if (inArg) {
                     args.add(currentArg.toString());
                     currentArg.setLength(0);
                     inArg = false;
                 }
             } else {
+                // Append the character (this inherently handles concatenation)
                 currentArg.append(c);
                 inArg = true;
             }
