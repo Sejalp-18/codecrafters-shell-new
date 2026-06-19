@@ -2,6 +2,7 @@ import java.util.Scanner;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+// You might need java.util.Arrays if you convert array to list, but ProcessBuilder takes varargs/arrays.
 
 public class Main {
     public static void main(String[] args) throws Exception {
@@ -10,6 +11,10 @@ public class Main {
         while (true) {
             System.out.print("$ ");
             String s = sc.nextLine();
+
+            if (s.trim().isEmpty()) {
+                continue;
+            }
 
             if (s.equals("exit") || s.equals("exit 0")) {
                 return;
@@ -43,7 +48,37 @@ public class Main {
                     }
                 }
             } else {
-                System.out.println(s + ": command not found");
+                String[] parts = s.split(" ");
+                String cmd = parts[0];
+
+                String pathEnv = System.getenv("PATH");
+                boolean found = false;
+
+                if (pathEnv != null) {
+                    String[] directories = pathEnv.split(File.pathSeparator);
+
+                    for (String dir : directories) {
+                        Path executablePath = Path.of(dir, cmd);
+
+                        if (Files.isRegularFile(executablePath) && Files.isExecutable(executablePath)) {
+                            found = true;
+                            try {
+                                ProcessBuilder pb = new ProcessBuilder(parts);
+                                pb.inheritIO();
+
+                                Process process = pb.start();
+                                process.waitFor();
+                            } catch (Exception e) {
+                                System.out.println("Error executing program: " + e.getMessage());
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                if (!found) {
+                    System.out.println(s + ": command not found");
+                }
             }
         }
     }
