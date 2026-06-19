@@ -24,13 +24,17 @@ public class Main {
             } else if (s.startsWith("cd ")) {
 
                 String targetDir = s.substring(3);
-                Path newPath = Path.of(targetDir);
+
+                Path currentDir = Path.of(System.getProperty("user.dir"));
+
+                Path newPath = currentDir.resolve(targetDir).normalize();
 
                 if (Files.isDirectory(newPath)) {
-                    System.setProperty("user.dir", targetDir);
+                    System.setProperty("user.dir", newPath.toString());
                 } else {
                     System.out.println("cd: " + targetDir + ": No such file or directory");
                 }
+
             } else if (s.startsWith("type ")) {
                 String cmd = s.substring(5);
 
