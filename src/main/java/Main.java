@@ -24,14 +24,22 @@ public class Main {
             } else if (s.startsWith("cd ")) {
 
                 String targetDir = s.substring(3);
+                String expandedDir = targetDir;
+
+                if (targetDir.startsWith("~")) {
+                    String homeEnv = System.getenv("HOME");
+                    if (homeEnv != null) {
+                        expandedDir = targetDir.replaceFirst("^~", homeEnv);
+                    }
+                }
 
                 Path currentDir = Path.of(System.getProperty("user.dir"));
-
-                Path newPath = currentDir.resolve(targetDir).normalize();
+                Path newPath = currentDir.resolve(expandedDir).normalize();
 
                 if (Files.isDirectory(newPath)) {
                     System.setProperty("user.dir", newPath.toString());
                 } else {
+                    // Use the original targetDir for the error message
                     System.out.println("cd: " + targetDir + ": No such file or directory");
                 }
 
